@@ -11,6 +11,7 @@ import { Vpc } from './vpc';
 import * as fs from 'fs';
 import * as pg from './passwordGenerator';
 import { Ifb } from './ifb';
+import { S3_SERVER_ACCESS_LOGS_USE_BUCKET_POLICY } from 'aws-cdk-lib/cx-api';
 
 
 export class Rdslog2S3Ec2Stack extends cdk.Stack {
@@ -35,13 +36,35 @@ export class Rdslog2S3Ec2Stack extends cdk.Stack {
     })
     ec2SecurityGroup.addIngressRule(eicSecurityGroup,ec2.Port.tcp(22));
     eicSecurityGroup.addEgressRule(ec2SecurityGroup,ec2.Port.tcp(22));
-
+    // s3 bucket
+    const s3_bucket = new s3.Bucket(this,'rdslogbucket',{
+      removalPolicy:cdk.RemovalPolicy.DESTROY
+    });
+    // rds log access role
+    const rdsLogPolicy = new iam.Policy(this,'RDSLogFile',{
+      statements:[new iam.PolicyStatement({
+        effect:iam.Effect.ALLOW,
+        actions:[
+          "rds:DownloadDBLogFilePortion",
+          "rds:DownloadCompleteDBLogFile",
+          "rds:DescribeDBLogFiles",
+          "s3:PutObject",
+        ],
+        resources:["*"]
+      })]
+    });
+    const rdsLogRole = new iam.Role(this,'RDSLogFileRole',{
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    });
+    rdsLogRole.attachInlinePolicy(rdsLogPolicy);
     // build sender Instances
     const initFileBuilder = new Ifb({
-      filePath: '/etc/initial.conf',
-      sourceFilePath: './lib/conf/initial.conf',
+      filePath: '/home/ec2-user/storeRdsLog.sh',
+      sourceFilePath: './lib/storeRdsLog.sh',
       rv:{
-        __FORWARDER_IP_ADDRESS__: 'ipaddress',
+        __DATABASE_ID__: 'database-2-instance-1',
+        __REGION__: 'ap-northeast-1',
+        __S3_BUCKET__: s3_bucket.bucketName,
       },
     });
     let ec2Instances:Ec2Instance[] = [];
@@ -55,8 +78,9 @@ export class Rdslog2S3Ec2Stack extends cdk.Stack {
         instanceSize: ec2.InstanceSize.NANO,
         ec2SecurityGroup: ec2SecurityGroup,
         init: ec2.CloudFormationInit.fromElements(
-          ec2.InitFile.fromString(initFileBuilder.getFilePath(),initFileBuilder.getString()),
+          initFileBuilder.getInit(),
         ),
+        role:rdsLogRole,
       }));
     }
     const userData = fs.readFileSync('./lib/ud/ud.sh','utf8');

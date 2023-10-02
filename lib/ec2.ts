@@ -1,5 +1,7 @@
 import { Construct } from 'constructs';
 import { aws_ec2 as ec2 } from 'aws-cdk-lib';
+import { aws_iam as iam } from 'aws-cdk-lib';
+
 
 
 interface Ec2InsntaceProps {
@@ -11,6 +13,7 @@ interface Ec2InsntaceProps {
   instanceSize: ec2.InstanceSize;
   ec2SecurityGroup: ec2.SecurityGroup;
   init?:ec2.CloudFormationInit;
+  role?:iam.Role;
 };
 const gravitonClasses = [
   ec2.InstanceClass.MEMORY6_GRAVITON,
@@ -85,7 +88,7 @@ export class Ec2Instance extends Construct {
         securityGroup: props.ec2SecurityGroup,
         requireImdsv2: true,
         init:props.init,
-/*        role:smRole,*/
+        role:props.role,
       });
     }else{
       this.instance = new ec2.Instance(this, props.name, {
@@ -98,7 +101,7 @@ export class Ec2Instance extends Construct {
         securityGroup: props.ec2SecurityGroup,
         requireImdsv2: true,
         init:props.init,
-/*        role:smRole,*/
+        role:props.role,
       });
     }
   }
