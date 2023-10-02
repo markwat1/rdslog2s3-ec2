@@ -8,7 +8,9 @@ import MersenneTwister = require('mersenne-twister');
 export function replaceStrings(s:string,rv:{[name:string]: string}){
     let r = s;
     for(let k in rv){
-        r = r.replace(k,rv[k]);
+        while(r.indexOf(k) >= 0){
+            r = r.replace(k,rv[k]);
+        }
     }
     return r;
 }
