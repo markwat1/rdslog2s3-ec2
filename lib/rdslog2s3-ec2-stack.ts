@@ -3,15 +3,11 @@ import { Construct } from 'constructs';
 import { aws_ec2 as ec2} from 'aws-cdk-lib';
 import { aws_s3 as s3 } from 'aws-cdk-lib';
 import { aws_iam as iam } from 'aws-cdk-lib';
-import { execSync } from 'child_process';
-
 import { Ec2Instance} from './ec2';
 import { Eic } from './eic';
 import { Vpc } from './vpc';
 import * as fs from 'fs';
-import * as pg from './passwordGenerator';
 import { Ifb } from './ifb';
-import { S3_SERVER_ACCESS_LOGS_USE_BUCKET_POLICY } from 'aws-cdk-lib/cx-api';
 
 
 export class Rdslog2S3Ec2Stack extends cdk.Stack {
